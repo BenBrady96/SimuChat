@@ -1,0 +1,20 @@
+# =============================================================================
+# SimuChat — PostgreSQL PersistentVolumeClaim
+# =============================================================================
+# Requests 5Gi of persistent storage for PostgreSQL data. This ensures
+# database contents survive pod restarts and rescheduling.
+# =============================================================================
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: postgres-pvc
+  labels:
+    app: simuchat
+    component: database
+spec:
+  accessModes:
+    - ReadWriteOnce       # Single-node read/write — appropriate for a single DB instance
+  resources:
+    requests:
+      storage: 5Gi        # 5GB is sufficient for development and demo data
+  storageClassName: local-path  # K3s default storage class

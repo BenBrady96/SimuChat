@@ -1,0 +1,71 @@
+# =============================================================================
+# SimuChat — PostgreSQL StatefulSet
+# =============================================================================
+# Deploys PostgreSQL 15 (Alpine) as a StatefulSet for stable network identity
+# and ordered pod lifecycle management. Uses a PVC for data persistence.
+# =============================================================================
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: postgres
+  labels:
+    app: simuchat
+    component: database
+spec:
+  serviceName: postgres-service
+  replicas: 1                          # Single instance for development
+  selector:
+    matchLabels:
+      app: simuchat
+      component: database
+  template:
+    metadata:
+      labels:
+        app: simuchat
+        component: database
+    spec:
+      containers:
+        - name: postgres
+          image: postgres:15-alpine    # Lightweight Alpine-based image
+          ports:
+            - containerPort: 5432
+              name: postgres
+
+          # Load credentials from the Kubernetes secret
+          envFrom:
+            - secretRef:
+                name: postgres-secret
+
+          # Mount persistent storage for database files
+          volumeMounts:
+            - name: postgres-data
+              mountPath: /var/lib/postgresql/data
+              subPath: pgdata          # Avoids lost+found conflicts
+
+          # Health checks ensure traffic only reaches a ready database
+          readinessProbe:
+            exec:
+              command: ["pg_isready", "-U", "simuchat"]
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            timeoutSeconds: 5
+          livenessProbe:
+            exec:
+              command: ["pg_isready", "-U", "simuchat"]
+            initialDelaySeconds: 30
+            periodSeconds: 30
+            timeoutSeconds: 5
+
+          # Resource limits appropriate for e2-small (2 vCPU, 2GB RAM)
+          resources:
+            requests:
+              memory: "128Mi"
+              cpu: "100m"
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
+
+      volumes:
+        - name: postgres-data
+          persistentVolumeClaim:
+            claimName: postgres-pvc

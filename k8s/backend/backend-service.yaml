@@ -1,0 +1,23 @@
+# =============================================================================
+# SimuChat — Backend Service
+# =============================================================================
+# ClusterIP service exposing the Kotlin REST API internally.
+# The Ingress controller routes /api traffic here.
+# =============================================================================
+apiVersion: v1
+kind: Service
+metadata:
+  name: backend-service
+  labels:
+    app: simuchat
+    component: backend
+spec:
+  type: ClusterIP
+  selector:
+    app: simuchat
+    component: backend
+  ports:
+    - port: 8080
+      targetPort: 8080
+      protocol: TCP
+      name: http

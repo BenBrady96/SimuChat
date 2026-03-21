@@ -1,0 +1,87 @@
+# =============================================================================
+# SimuChat — Docker Compose Configuration
+# =============================================================================
+# Starts all three services locally for development and testing:
+#   1. PostgreSQL 15 (database)
+#   2. Kotlin/Ktor REST API (backend)
+#   3. React/Nginx SPA (frontend)
+#
+# Usage:
+#   docker compose up --build        Start all services
+#   docker compose up --build -d     Start in detached mode
+#   docker compose down              Stop all services (data is preserved)
+#   docker compose down -v           Stop and DELETE all data (removes volumes)
+#
+# ⚠️  WARNING: "docker compose down -v" deletes the PostgreSQL volume and
+#    permanently wipes all user accounts, chat threads, and messages.
+#    Only use -v if you want a completely fresh database.
+#
+# The frontend is accessible at http://localhost:3000
+# The API is accessible at http://localhost:3000/api (via Nginx proxy)
+# =============================================================================
+
+services:
+
+  # ---------------------------------------------------------------------------
+  # PostgreSQL Database
+  # ---------------------------------------------------------------------------
+  postgres:
+    image: postgres:15-alpine
+    container_name: simuchat-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: simuchat
+      POSTGRES_USER: simuchat
+      POSTGRES_PASSWORD: changeme
+    ports:
+      - "5432:5432" # Exposed for local development tools
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U simuchat" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ---------------------------------------------------------------------------
+  # Kotlin/Ktor REST API Backend
+  # ---------------------------------------------------------------------------
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: simuchat-backend
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DB_HOST: postgres
+      DB_PORT: "5432"
+      DB_NAME: simuchat
+      DB_USER: simuchat
+      DB_PASSWORD: changeme
+      JWT_SECRET: local-dev-jwt-secret-change-in-production
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-} # Set via .env file or export
+    ports:
+      - "8080:8080" # Direct API access for debugging
+
+  # ---------------------------------------------------------------------------
+  # React/Nginx Frontend
+  # ---------------------------------------------------------------------------
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: simuchat-frontend
+    restart: unless-stopped
+    depends_on:
+      - backend
+    ports:
+      - "3000:80" # Main entry point for users
+
+# Persistent volume for PostgreSQL data.
+# Data survives 'docker compose down' but NOT 'docker compose down -v'.
+volumes:
+  postgres_data:
+    driver: local

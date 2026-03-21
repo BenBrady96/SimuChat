@@ -1,0 +1,23 @@
+# =============================================================================
+# SimuChat — Frontend Service
+# =============================================================================
+# ClusterIP service exposing the React/Nginx frontend internally.
+# The Ingress controller routes / traffic here.
+# =============================================================================
+apiVersion: v1
+kind: Service
+metadata:
+  name: frontend-service
+  labels:
+    app: simuchat
+    component: frontend
+spec:
+  type: ClusterIP
+  selector:
+    app: simuchat
+    component: frontend
+  ports:
+    - port: 80
+      targetPort: 80
+      protocol: TCP
+      name: http

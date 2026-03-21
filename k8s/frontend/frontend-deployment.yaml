@@ -1,0 +1,55 @@
+# =============================================================================
+# SimuChat — Frontend Deployment
+# =============================================================================
+# Deploys the React SPA served by Nginx. The Nginx configuration handles
+# SPA routing (all paths fallback to index.html) and proxies /api requests
+# to the backend service.
+# =============================================================================
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: frontend
+  labels:
+    app: simuchat
+    component: frontend
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: simuchat
+      component: frontend
+  template:
+    metadata:
+      labels:
+        app: simuchat
+        component: frontend
+    spec:
+      containers:
+        - name: frontend
+          image: simuchat-frontend:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 80
+              name: http
+
+          # Nginx is lightweight and starts quickly
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 80
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 80
+            initialDelaySeconds: 10
+            periodSeconds: 30
+
+          resources:
+            requests:
+              memory: "64Mi"
+              cpu: "50m"
+            limits:
+              memory: "128Mi"
+              cpu: "200m"

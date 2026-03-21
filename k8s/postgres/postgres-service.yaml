@@ -1,0 +1,23 @@
+# =============================================================================
+# SimuChat — PostgreSQL Service
+# =============================================================================
+# ClusterIP service exposing PostgreSQL internally within the cluster.
+# Other pods connect via: postgres-service:5432
+# =============================================================================
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres-service
+  labels:
+    app: simuchat
+    component: database
+spec:
+  type: ClusterIP                      # Internal-only — not exposed outside the cluster
+  selector:
+    app: simuchat
+    component: database
+  ports:
+    - port: 5432
+      targetPort: 5432
+      protocol: TCP
+      name: postgres

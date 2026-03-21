@@ -1,0 +1,43 @@
+# =============================================================================
+# SimuChat — Ingress Configuration
+# =============================================================================
+# Routes incoming HTTP traffic to the appropriate backend:
+#   /api/*  →  backend-service:8080  (Kotlin REST API)
+#   /*      →  frontend-service:80   (React SPA)
+#
+# This enables a single domain to serve both the frontend and the API,
+# maintaining the decoupled microservice architecture behind a unified URL.
+# =============================================================================
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: simuchat-ingress
+  labels:
+    app: simuchat
+  annotations:
+    # Nginx Ingress Controller annotations
+    nginx.ingress.kubernetes.io/rewrite-target: /
+    nginx.ingress.kubernetes.io/proxy-body-size: "10m"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "60"
+spec:
+  ingressClassName: nginx
+  rules:
+    - http:
+        paths:
+          # API routes — forward to the Kotlin backend
+          - path: /api
+            pathType: Prefix
+            backend:
+              service:
+                name: backend-service
+                port:
+                  number: 8080
+
+          # All other routes — serve the React SPA
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: frontend-service
+                port:
+                  number: 80
